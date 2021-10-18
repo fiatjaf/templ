@@ -9,6 +9,7 @@ import (
 	"github.com/a-h/templ/cmd/templ/fmtcmd"
 	"github.com/a-h/templ/cmd/templ/generatecmd"
 	"github.com/a-h/templ/cmd/templ/lspcmd"
+	"github.com/a-h/templ/cmd/templ/storybookcmd"
 )
 
 // Binary builds set this version string. goreleaser sets the value using Go build ldflags.
@@ -45,6 +46,9 @@ func main() {
 		return
 	case "lsp":
 		lspCmd(os.Args[2:])
+		return
+	case "storybook":
+		storybookCmd(os.Args[2:])
 		return
 	case "version":
 		fmt.Println(getVersion())
@@ -114,6 +118,21 @@ func lspCmd(args []string) {
 		GoplsLog:      *goplsLog,
 		GoplsRPCTrace: *goplsRPCTrace,
 	})
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+}
+
+func storybookCmd(args []string) {
+	cmd := flag.NewFlagSet("storybook", flag.ExitOnError)
+	helpFlag := cmd.Bool("help", false, "Print help and exit.")
+	err := cmd.Parse(args)
+	if err != nil || *helpFlag {
+		cmd.PrintDefaults()
+		return
+	}
+	err = storybookcmd.Run(args)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)

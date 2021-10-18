@@ -1,0 +1,32 @@
+{
+ "title": "Hello",
+ "parameters": {
+ "server": {
+ "id": "Hello"
+ }
+ },
+ "args": {
+ "stringArg": "the name",
+ "intArg": 0
+ },
+ "argTypes": {
+ "stringArg": {
+ "control": "text"
+ },
+ "intArg": {
+ "control": {
+ "max": 100,
+ "min": 0,
+ "step": 5,
+ "type": "number"
+ }
+ }
+ },
+ "stories": [
+ {
+ "name": "Default",
+ "Args": {}
+ }
+ ]
+ }
+

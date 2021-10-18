@@ -9,6 +9,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/natefinch/atomic v0.0.0-20210627155326-85a124586cef
+	github.com/rs/cors v1.8.0 // indirect
 	github.com/sourcegraph/go-lsp v0.0.0-20200429204803-219e11d77f5d
 	github.com/sourcegraph/jsonrpc2 v0.1.0
 	go.uber.org/atomic v1.8.0 // indirect

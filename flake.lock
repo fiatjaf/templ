@@ -56,11 +56,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1666369046,
-        "narHash": "sha256-RTJC1VvsDXYY07pvma6AZOTjec6Qd7NkKaredh4hk2U=",
+        "lastModified": 1682161870,
+        "narHash": "sha256-totoTsRI/ISHixAJgvx26291cyXGVRyG9gRf4ZnppKw=",
         "owner": "a-h",
         "repo": "nix-golang",
-        "rev": "7d64d5e2758e3d55767d1ad8c77d4c363b620cd6",
+        "rev": "239c45506fa0f6d78b4842760acd316f6b473069",
         "type": "github"
       },
       "original": {

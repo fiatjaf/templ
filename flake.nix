@@ -15,14 +15,14 @@
   outputs = { self, flake-utils, nixpkgs, xc, go }:
     flake-utils.lib.eachDefaultSystem (system:
     let 
-      pkgs2 = import nixpkgs {};
+      pkgsDefault = import nixpkgs {};
         pkgs = import nixpkgs { 
           inherit system; overlays = [ 
             (self: super: {
               xc = xc.packages.${system}.xc;
-              neovim = import ./nvim.nix { pkgs = pkgs2; };
-              go = go.packages.${system}.go_1_19_2;
-              gopls = pkgs.callPackage ./gopls.nix { };
+              neovim = import ./nix/nvim.nix { pkgs = pkgsDefault; };
+              go = go.packages.${system}.go_1_20_3;
+              gopls = pkgs.callPackage ./nix/gopls.nix { };
               nerdfonts = (pkgs.nerdfonts.override { fonts = [ "IBMPlexMono" ]; });
             })
           ];

@@ -18,27 +18,17 @@ in
     configure = {
       packages.myPlugins = with pkgs.vimPlugins; {
        start = [
-          (pluginGit "github" "copilot.vim" "b6e5624351ba735e25eb8864d7d22819aad00606" "sha256-EA9SNPRIIBG9eoV299h+5/AcF/NJYS8izsurLEW31bc=")
           (pluginGit "nvim-lualine" "lualine.nvim" "d8c392dd75778d6258da4e7c55522e94ac389732" "s4bIwha2ZWvF5jYuIfUBcT/JKK9gcMH0vms2pOO5uKs=")
           (pluginGit "Mofiqul" "dracula.nvim" "a0b129d7dea51b317fa8064f13b29f68004839c4" "snCRLw/QtKPDAkh1CXZfto2iCoyaQIx++kOEC0vy9GA=")
-          # Metal syntax highlighting.
-          (pluginGit "tklebanoff" "metal-vim" "6970494a5490a17033650849f0a1ad07506cef2e" "14i8q9ikp3v4q7mpid9ir1azfqfm7fbksc65cpp51424clnqcapl")
           # Add fuzzy searching (Ctrl-P to search file names, space-p to search content).
           fzf-vim
-          # Maintain last location in files.
-          vim-lastplace
           # Syntax highlighting for Nix files.
           vim-nix
-          # Colour scheme.
-          # Use :TSHighlightCapturesUnderCursor to see the syntax under cursor.
-          (pluginGit "nvim-treesitter" "playground" "c481c660fa903a0e295902b1765ecfbd6e76a556" "KyLR31XfYi3aANvXBGYCAsmYEr+H9hUr8j82abPQYDQ=")
           # Tressiter syntax highlighting.
           nvim-treesitter-with-plugins
           # Code coverage
           (pluginGit "nvim-lua" "plenary.nvim" "v0.1.2" "7EsquOLB7gfN2itfGFJZYKwEXBmP0xMKEOdyyjOweHg=")
           (pluginGit "andythigpen" "nvim-coverage" "fd44fde75468ddc8d72c7a64812c6d88826a3301" "Sve4ljcXR68YIoBNW5arwa5gQCUmA6PyXxs076qKAmE=")
-          # Grep plugin to improve grep UX.
-          (pluginGit "dkprice" "vim-easygrep" "d0c36a77cc63c22648e792796b1815b44164653a" "0y2p5mz0d5fhg6n68lhfhl8p4mlwkb82q337c22djs4w5zyzggbc")
           # Templ highlighting.
           (pluginGit "Joe-Davidson1802" "templ.vim" "2d1ca014c360a46aade54fc9b94f065f1deb501a" "1bc3p0i3jsv7cbhrsxffnmf9j3zxzg6gz694bzb5d3jir2fysn4h")
           # Add function signatures to autocomplete.

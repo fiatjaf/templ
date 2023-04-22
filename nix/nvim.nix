@@ -11,7 +11,20 @@ let
       sha256 = sha;
     };
   };
-  nvim-treesitter-with-plugins = pkgs.vimPlugins.nvim-treesitter.withAllGrammars;
+  # See list of grammars.
+  # https://github.com/NixOS/nixpkgs/blob/c4fcf9a2cc4abde8a2525691962b2df6e7327bd3/pkgs/applications/editors/vim/plugins/nvim-treesitter/generated.nix
+  nvim-treesitter-with-plugins = pkgs.vimPlugins.nvim-treesitter.withPlugins (p: [ 
+    p.go
+    p.gomod
+    p.javascript
+    p.json
+    p.nix
+    p.html
+    p.tsx
+    p.typescript
+    p.yaml
+    p.dockerfile
+  ]);
 in
   pkgs.neovim.override {
     vimAlias = true;

@@ -759,6 +759,14 @@ Build a Docker container with a full development environment and Neovim setup fo
 docker build -t templ:latest .
 ```
 
+### docker-run
+
+Run a Docker development container in the current directory.
+
+```
+docker run -v `pwd`:/templ -it --rm templ:latest
+```
+
 # Code signing
 
 The binaries are created by me and signed by my GPG key. You can verify with my key https://adrianhesketh.com/a-h.gpg

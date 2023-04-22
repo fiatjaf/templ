@@ -23,25 +23,25 @@
               neovim = import ./nix/nvim.nix { pkgs = pkgsDefault; };
               go = go.packages.${system}.go_1_20_3;
               gopls = pkgs.callPackage ./nix/gopls.nix { };
-              nerdfonts = (pkgs.nerdfonts.override { fonts = [ "IBMPlexMono" ]; });
+              nerdfonts = (pkgsDefault.nerdfonts.override { fonts = [ "IBMPlexMono" ]; });
             })
           ];
         };
         shell = pkgs.mkShell {
             packages = [ 
+              pkgs.asciinema
+              pkgs.git
               pkgs.go
-              pkgs.xc
+              pkgs.gopls
+              pkgs.gotools
+              pkgs.ibm-plex
               pkgs.neovim
-              #nerdfonts
-              #pkgs.asciinema
-              #pkgs.git
-              #pkgs.gotools
-              #gopls
-              #pkgs.ibm-plex
-              #pkgs.ripgrep
-              #pkgs.tmux
-              #pkgs.wget
-              #pkgs.zip
+              pkgs.nerdfonts
+              pkgs.ripgrep
+              pkgs.tmux
+              pkgs.wget
+              pkgs.xc
+              pkgs.zip
             ];
           };
       in

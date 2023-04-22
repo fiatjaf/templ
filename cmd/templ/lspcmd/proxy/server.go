@@ -162,7 +162,6 @@ func (p *Server) parseTemplate(ctx context.Context, uri uri.URI, templateText st
 
 func (p *Server) Initialize(ctx context.Context, params *lsp.InitializeParams) (result *lsp.InitializeResult, err error) {
 	p.Log.Info("client -> server: Initialize")
-	defer p.Log.Info("client -> server: Initialize end")
 	result, err = p.Target.Initialize(ctx, params)
 	if err != nil {
 		p.Log.Error("Initialize failed", zap.Error(err))
@@ -178,6 +177,7 @@ func (p *Server) Initialize(ctx context.Context, params *lsp.InitializeParams) (
 	}
 	result.Capabilities.ExecuteCommandProvider.Commands = []string{}
 	result.Capabilities.DocumentFormattingProvider = true
+	defer p.Log.Info("client -> server: Initialize end", zap.Any("result", result))
 	return result, err
 }
 
@@ -631,6 +631,8 @@ func (p *Server) Formatting(ctx context.Context, params *lsp.DocumentFormattingP
 		},
 		NewText: w.String(),
 	})
+	d.Replace(w.String())
+	defer p.Log.Info("client -> server: Formatting result", zap.Any("result", result[0]))
 	return
 }
 

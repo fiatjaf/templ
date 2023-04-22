@@ -31,39 +31,22 @@ in
     configure = {
       packages.myPlugins = with pkgs.vimPlugins; {
        start = [
-          (pluginGit "nvim-lualine" "lualine.nvim" "d8c392dd75778d6258da4e7c55522e94ac389732" "s4bIwha2ZWvF5jYuIfUBcT/JKK9gcMH0vms2pOO5uKs=")
           (pluginGit "Mofiqul" "dracula.nvim" "a0b129d7dea51b317fa8064f13b29f68004839c4" "snCRLw/QtKPDAkh1CXZfto2iCoyaQIx++kOEC0vy9GA=")
-          # Add fuzzy searching (Ctrl-P to search file names, space-p to search content).
-          fzf-vim
-          # Syntax highlighting for Nix files.
-          vim-nix
           # Tressiter syntax highlighting.
           nvim-treesitter-with-plugins
           # Templ highlighting.
           (pluginGit "Joe-Davidson1802" "templ.vim" "2d1ca014c360a46aade54fc9b94f065f1deb501a" "1bc3p0i3jsv7cbhrsxffnmf9j3zxzg6gz694bzb5d3jir2fysn4h")
           # Add function signatures to autocomplete.
-          (pluginGit "ray-x" "lsp_signature.nvim" "e65a63858771db3f086c8d904ff5f80705fd962b" "17qxn2ldvh1gas3i55vigqsz4mm7sxfl721v7lix9xs9bqgm73n1")
+          (pluginGit "ray-x" "lsp_signature.nvim" "1fdc742af68f4725a22c05c132f971143be447fc" "DITo8Sp/mcOPhCTcstmpb1i+mUc5Ao8PEP5KYBO8Xdg=")
           # Configure autocomplete.
-          (pluginGit "hrsh7th" "nvim-cmp" "983453e32cb35533a119725883c04436d16c0120" "0649n476jd6dqd79fmywmigz19sb0s344ablwr25gr23fp46hzaz")
+          (pluginGit "hrsh7th" "nvim-cmp" "777450fd0ae289463a14481673e26246b5e38bf2" "CoHGIiZrhRAHZ/Er0JSQMapI7jwllNF5OysLlx2QEik=")
           # Configure autocomplete.
-          (pluginGit "neovim" "nvim-lspconfig" "d3c82d2f9a6fd91ec1ffee645664d2cc57e706d9" "wDt3Fs6+hHAr4ToACR7BZRtm5FeDnGZtSsdjTxrsWE4=")
+          (pluginGit "neovim" "nvim-lspconfig" "cf95480e876ef7699bf08a1d02aa0ae3f4d5f353" "mvDg+aT5lldqckQFpbiBsXjnwozzjKf+v3yBEyvcVLo=")
           # Snippets manager.
-          (pluginGit "L3MON4D3" "LuaSnip" "e687d78fc95a7c04b0762d29cf36c789a6d94eda" "11a9b744cgr3w2nvnpq1bjblqp36klwda33r2xyhcvhzdcz0h53v")
+          (pluginGit "L3MON4D3" "LuaSnip" "8d6c0a93dec34900577ba725e91c44b8d3ca1f45" "ymH5iiMcCAfpU2W/2W6cFbQgZUSRSieUmdsWoizTaZg=")
           # Add snippets to the autocomplete.
-          (pluginGit "saadparwaiz1" "cmp_luasnip" "a9de941bcbda508d0a45d28ae366bb3f08db2e36" "0mh7gimav9p6cgv4j43l034dknz8szsnmrz49b2ra04yk9ihk1zj")
-          # Replacement for netrw.
-          (pluginGit "nvim-tree" "nvim-web-devicons" "3b1b794bc17b7ac3df3ae471f1c18f18d1a0f958" "hxujmUwNtDAXd6JCxBpvPpOzEENQSOYepS7fwmbZufs=")
-          (pluginGit "nvim-tree" "nvim-tree.lua" "1837751efb5fcfc584cb0ee900f09ff911cd6c0b" "emoQbOwwZOCV4F4/vSgcfMmnJFXvxgEAxqCwZyY1zpU=")
-          # \c to toggle commenting out a line.
-          nerdcommenter #preservim/nerdcommenter
-          # Work out tabs vs spaces etc. automatically.
-          vim-sleuth #tpope/vim-sleuth
-          # Change surrounding characters, e.g. cs"' to change from double to single quotes.
-          vim-surround #tpope/vim-surround
-          (pluginGit "klen" "nvim-test" "4e30d0772a43bd67ff299cfe201964c5bd799d73" "sha256-iUkBnJxvK71xSqbH8JLm7gwvpiNxfWlAd2+3frNEXXQ=")
-          vim-visual-multi #mg979/vim-visual-multi
-          (pluginGit "hrsh7th" "cmp-nvim-lsp" "59224771f91b86d1de12570b4070fe4ad7cd1eeb" "Mqkp8IH/laUx0cK7S0BjusTT+OtOOJOamZM4+93RHdU=")
-          targets-vim # https://github.com/wellle/targets.vim
+          (pluginGit "saadparwaiz1" "cmp_luasnip" "18095520391186d634a0045dacaa346291096566" "Z5SPy3j2oHFxJ7bK8DP8Q/oRyLEMlnWyIfDaQcNVIS0=")
+          (pluginGit "hrsh7th" "cmp-nvim-lsp" "0e6b2ed705ddcff9738ec4ea838141654f12eeef" "DxpcPTBlvVP88PDoTheLV2fC76EXDqS2UpM5mAfj/D4=")
         ];
         opt = [ ];
       };

@@ -34,6 +34,7 @@
         shell = pkgs.mkShell {
             packages = [ 
               pkgs.asciinema
+              pkgs.ag
               pkgs.git
               pkgs.go
               pkgs.gopls

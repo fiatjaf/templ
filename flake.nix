@@ -34,7 +34,6 @@
         shell = pkgs.mkShell {
             packages = [ 
               pkgs.asciinema
-              pkgs.ag
               pkgs.git
               pkgs.go
               pkgs.gopls
@@ -43,6 +42,7 @@
               pkgs.neovim
               pkgs.nerdfonts
               pkgs.ripgrep
+              pkgs.silver-searcher
               pkgs.templ
               pkgs.tmux
               pkgs.wget

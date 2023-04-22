@@ -65,14 +65,6 @@ configs.templ = {
     settings = {},
   };
 }
--- Java language server.
-configs.jdtls = {
-  default_config = {
-    cmd = { "jdtls" },
-    filetypes = { 'java' },
-    root_dir = nvim_lsp.util.root_pattern("Makefile", ".git", "build.gradle"),
-  };
-}
 
 -- Add additional capabilities supported by nvim-cmp
 local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -105,24 +97,6 @@ local server_settings = {
       enable = true,
     },
   },
-  sumneko_lua = {
-    Lua = {
-      runtime = {
-        version = 'Lua 5.4',
-        nonstandardSymbol = { "+=", "-=", "*=", "/=" },
-      },
-      diagnostics = {
-        globals = { 'playdate', 'import', 'vim' },
-      },
-      workspace = {
-        library = { "/Users/adrian/Developer/PlaydateSDK/CoreLibs" },
-      },
-      -- Do not send telemetry data containing a randomized but unique identifier
-      telemetry = {
-        enable = false,
-      },
-    },
-  },
 }
 
 
@@ -130,8 +104,7 @@ local server_settings = {
 -- map buffer local keybindings when the language server attaches
 -- eslint comes from:
 -- npm i -g vscode-langservers-extracted
-local servers = { 'gopls', 'ccls', 'cmake', 'tsserver', 'templ', 'rls', 'eslint', 'sumneko_lua', 'jdtls', 'terraformls',
-  'tflint', 'pylsp' }
+local servers = { 'gopls', 'tsserver', 'templ', 'eslint' }
 for _, lsp in ipairs(servers) do
   local lsp_opts = {
     on_attach = on_attach,

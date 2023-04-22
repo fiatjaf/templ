@@ -23,6 +23,10 @@
               neovim = import ./nix/nvim.nix { pkgs = pkgsDefault; };
               go = go.packages.${system}.go_1_20_3;
               gopls = pkgs.callPackage ./nix/gopls.nix { };
+              templ = pkgs.callPackage ./nix/templ.nix { 
+                go = self.go; 
+                xc = self.xc;
+              };
               nerdfonts = (pkgsDefault.nerdfonts.override { fonts = [ "IBMPlexMono" ]; });
             })
           ];
@@ -38,6 +42,7 @@
               pkgs.neovim
               pkgs.nerdfonts
               pkgs.ripgrep
+              pkgs.templ
               pkgs.tmux
               pkgs.wget
               pkgs.xc

@@ -645,7 +645,7 @@ To add extensive debug information, you can include additional args to the LSP, 
 
 ## Tasks
 
-### develop
+### nix-develop
 
 Run a Nix shell that contains everything required to build templ.
 

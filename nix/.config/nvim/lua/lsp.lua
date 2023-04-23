@@ -109,9 +109,6 @@ for _, lsp in ipairs(servers) do
   local lsp_opts = {
     on_attach = on_attach,
     capabilities = capabilities,
-    flags = {
-      debounce_text_changes = 150,
-    },
   }
   if server_settings[lsp] then lsp_opts.settings = server_settings[lsp] end
   nvim_lsp[lsp].setup(lsp_opts)
@@ -122,64 +119,32 @@ end
 -- Set completeopt to have a better completion experience
 vim.o.completeopt = 'menuone,noselect'
 
--- luasnip setup
-local luasnip = require 'luasnip'
-
 -- nvim-cmp setup
 local cmp = require 'cmp'
-cmp.setup {
+cmp.setup({
   snippet = {
     expand = function(args)
-      luasnip.lsp_expand(args.body)
+      vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
     end,
   },
   window = {
-    -- border = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-    completion = {
-      border = { "", "", "", "", "", "", " ", "" },
-      winhighlight = 'NormalFloat:NormalFloat,FloatBorder:FloatBorder',
-    },
-    documentation = {
-      border = { "", "", "", "", "", "", "", "" },
-      winhighlight = 'NormalFloat:NormalFloat,FloatBorder:FloatBorder',
-    },
+    -- completion = cmp.config.window.bordered(),
+    -- documentation = cmp.config.window.bordered(),
   },
-  mapping = {
-    ['<tab>'] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
-    ['<C-p>'] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
-    ['<Down>'] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }),
-    ['<Up>'] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }),
+  mapping = cmp.mapping.preset.insert({
+    ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+    ['<C-f>'] = cmp.mapping.scroll_docs(4),
     ['<C-Space>'] = cmp.mapping.complete(),
-    ['<C-e>'] = cmp.mapping.close(),
-    ['<CR>'] = cmp.mapping.confirm({
-      behavior = cmp.ConfirmBehavior.Replace,
-      select = true,
-    }),
-    ['<C-d>'] = cmp.mapping(function(fallback)
-      if luasnip.jumpable(1) then
-        luasnip.jump(1)
-      else
-        cmp.mapping.scroll_docs(-4)
-        fallback()
-      end
-    end, { 'i', 's' }),
-    ['<C-b>'] = cmp.mapping(function(fallback)
-      if luasnip.jumpable(-1) then
-        luasnip.jump(-1)
-      else
-        cmp.mapping.scroll_docs(4)
-        fallback()
-      end
-    end, { 'i', 's' }),
-  },
-  preselect = cmp.PreselectMode.None,
+    ['<C-e>'] = cmp.mapping.abort(),
+    ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+  }),
   sources = cmp.config.sources({
     { name = 'nvim_lsp' },
-    { name = 'luasnip' },
+    { name = 'vsnip' },
   }, {
     { name = 'buffer' },
-  }),
-}
+  })
+})
 
 -- https://github.com/samhh/dotfiles/blob/ba63ff91a33419dfb08e412a7d832b2aca38148c/home/.config/nvim/plugins.vim#L151
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(

@@ -10,12 +10,18 @@
       url = "github:a-h/nix-golang";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    neovim-nightly-overlay = {
+      url = "github:nix-community/neovim-nightly-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+      # Neovim 0.9.0
+      inputs.neovim-flake.url = "github:neovim/neovim?dir=contrib&rev=040f1459849ab05b04f6bb1e77b3def16b4c2f2b";
+    };
   };
 
-  outputs = { self, flake-utils, nixpkgs, xc, go }:
+  outputs = { self, flake-utils, nixpkgs, xc, go, neovim-nightly-overlay }:
     flake-utils.lib.eachDefaultSystem (system:
     let 
-      pkgsDefault = import nixpkgs {};
+      pkgsDefault = import nixpkgs { overlays = [ neovim-nightly-overlay.overlay ]; };
         pkgs = import nixpkgs { 
           inherit system; overlays = [ 
             (self: super: {

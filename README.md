@@ -764,7 +764,7 @@ docker build -t templ:latest .
 Run a Docker development container in the current directory.
 
 ```
-docker run -v `pwd`:/templ -it --rm templ:latest
+docker run -p 7474:7474 -v `pwd`:/templ -it --rm templ:latest
 ```
 
 # Code signing

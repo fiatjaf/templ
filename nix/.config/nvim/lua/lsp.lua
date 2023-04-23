@@ -55,9 +55,6 @@ end
 --vim.lsp.set_log_level("debug")
 -- Use :LspLog to see logs.
 
--- Set completeopt to have a better completion experience
-vim.o.completeopt = 'menuone,noselect'
-
 -- nvim-cmp setup
 local cmp = require 'cmp'
 

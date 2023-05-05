@@ -152,7 +152,7 @@ func (d *Document) Replace(with string) {
 
 func (d *Document) Apply(r *lsp.Range, with string) {
 	withLines := strings.Split(with, "\n")
-	d.normalize(r)
+	r = d.normalize(r)
 	if d.isWholeDocument(r) {
 		d.Lines = withLines
 		return
@@ -170,11 +170,18 @@ func (d *Document) Apply(r *lsp.Range, with string) {
 	}
 }
 
-func (d *Document) normalize(r *lsp.Range) {
-	if r == nil {
-		return
+func (d *Document) normalize(input *lsp.Range) *lsp.Range {
+	if input == nil {
+		return nil
 	}
 	lens := d.LineLengths()
+	if len(lens) == 0 {
+		return &lsp.Range{
+			Start: lsp.Position{Line: 0, Character: 0},
+			End:   lsp.Position{Line: 0, Character: 0},
+		}
+	}
+	r := *input
 	if r.Start.Line >= uint32(len(lens)) {
 		r.Start.Line = uint32(len(lens) - 1)
 		r.Start.Character = uint32(lens[r.Start.Line])
@@ -189,6 +196,7 @@ func (d *Document) normalize(r *lsp.Range) {
 	if r.End.Character > uint32(lens[r.End.Line]) {
 		r.End.Character = uint32(lens[r.End.Line])
 	}
+	return &r
 }
 
 func (d *Document) isOverwrite(r *lsp.Range, with string) bool {

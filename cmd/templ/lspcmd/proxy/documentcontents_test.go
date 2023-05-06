@@ -728,3 +728,45 @@ func TestRangeNormalization(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkDocumentContents(b *testing.B) {
+	start := `package testcall
+
+templ personTemplate(p person) {
+	<div>
+		<h1>{ p.name }</h1>
+	</div>
+}
+`
+	operations := func(d *Document) {
+		d.Apply(&lsp.Range{
+			Start: lsp.Position{
+				Line:      4,
+				Character: 21,
+			},
+			End: lsp.Position{
+				Line:      4,
+				Character: 21,
+			},
+		}, "\n\t\t")
+	}
+	expected := `package testcall
+
+templ personTemplate(p person) {
+	<div>
+		<h1>{ p.name }</h1>
+		
+	</div>
+}
+`
+
+	log := zap.NewNop()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		d := NewDocument(log, start)
+		operations(d)
+		if d.String() != expected {
+			b.Fatalf("comparison failed: %v", d.String())
+		}
+	}
+}

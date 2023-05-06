@@ -1,5 +1,11 @@
 package proxy
 
+import (
+	"testing"
+
+	lsp "github.com/a-h/protocol"
+)
+
 //test('Incrementally replacing single-line content, more chars', () => {
 //const document = newDocument('function abc() {\n  console.log("hello, world!");\n}');
 //assert.equal(document.lineCount, 3);
@@ -214,3 +220,44 @@ package proxy
 //assertValidLineNumbers(document);
 //});
 //});
+
+func BenchmarkDocumentNodeContents(b *testing.B) {
+	start := `package testcall
+
+templ personTemplate(p person) {
+	<div>
+		<h1>{ p.name }</h1>
+	</div>
+}
+`
+	operations := func(d *FullTextDocument) {
+		d.Apply(&lsp.Range{
+			Start: lsp.Position{
+				Line:      4,
+				Character: 21,
+			},
+			End: lsp.Position{
+				Line:      4,
+				Character: 21,
+			},
+		}, "\n\t\t")
+	}
+	expected := `package testcall
+
+templ personTemplate(p person) {
+	<div>
+		<h1>{ p.name }</h1>
+		
+	</div>
+}
+`
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		d := NewFullTextDocument(1, start)
+		operations(d)
+		if d.String() != expected {
+			b.Fatalf("comparison failed: %v", d.String())
+		}
+	}
+}

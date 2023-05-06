@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"strings"
-
 	lsp "github.com/a-h/protocol"
 )
 
@@ -18,36 +16,6 @@ func NewFullTextDocument(version int, content string) (this *FullTextDocument) {
 		content:     content,
 		lineOffsets: nil,
 	}
-}
-
-func (this *FullTextDocument) getText(r *lsp.Range) string {
-	if r != nil {
-		start := this.offsetAt(r.Start)
-		end := this.offsetAt(r.End)
-		return this.content[start:end]
-	}
-	return this.content
-}
-
-func splice[T any](array []T, index int, count int, items ...T) {
-	// Delete.
-	array = array[:index+copy(array[index:], array[index+1:])]
-	// Insert.
-	array = append(array[:index], append(items, array[index:]...)...)
-	return
-}
-
-func spliceLineOffsets(slice []int, start int, deleteCount int, itemsToAdd []int) []int {
-	// Remove elements
-	removed := append(slice[:start], slice[start+deleteCount:]...)
-
-	// Add new elements
-	result := make([]int, 0, len(removed)+len(itemsToAdd))
-	result = append(result, removed[:start]...)
-	result = append(result, itemsToAdd...)
-	result = append(result, removed[start:]...)
-
-	return result
 }
 
 func (this *FullTextDocument) Apply(r *lsp.Range, text string) {
@@ -145,29 +113,6 @@ func (this *FullTextDocument) getLineOffsets() []uint32 {
 	return this.lineOffsets
 }
 
-func (this *FullTextDocument) positionAt(offset uint32) lsp.Position {
-	offset = max(min(offset, uint32(len(this.content))), 0)
-
-	lineOffsets := this.getLineOffsets()
-	low := 0
-	high := len(lineOffsets)
-	if high == 0 {
-		return lsp.Position{Line: 0, Character: offset}
-	}
-	for low < high {
-		mid := int(float64(low+high) / 2.0)
-		if lineOffsets[mid] > offset {
-			high = mid
-		} else {
-			low = mid + 1
-		}
-	}
-	// low is the least x for which the line offset is larger than the current offset
-	// or array.length if no line offset is larger than the current offset
-	line := uint32(low - 1)
-	return lsp.Position{Line: line, Character: offset - lineOffsets[line]}
-}
-
 func (this *FullTextDocument) offsetAt(position lsp.Position) uint32 {
 	lineOffsets := this.getLineOffsets()
 	if position.Line >= uint32(len(lineOffsets)) {
@@ -196,89 +141,12 @@ func max[T int | uint32](a, b T) T {
 	return b
 }
 
-func (this *FullTextDocument) lineCount() int {
-	return len(this.getLineOffsets())
-}
-
 func (this *FullTextDocument) isIncremental(event lsp.TextDocumentContentChangeEvent) bool {
 	return event.Range != nil
 }
 
 func (this *FullTextDocument) isFull(event lsp.TextDocumentContentChangeEvent) bool {
 	return event.Range == nil
-}
-
-func applyEdits(document *FullTextDocument, edits []lsp.TextEdit) (text string) {
-	text = document.getText(nil)
-	compare := func(a lsp.TextEdit, b lsp.TextEdit) int {
-		diff := int(a.Range.Start.Line - b.Range.Start.Line)
-		if diff == 0 {
-			return int(a.Range.Start.Character - b.Range.Start.Character)
-		}
-		return diff
-	}
-	wellFormedEdits := make([]lsp.TextEdit, len(edits))
-	for i := 0; i < len(edits); i++ {
-		wellFormedEdits[i] = getWellformedEdit(edits[i])
-	}
-	sortedEdits := mergeSort(wellFormedEdits, compare)
-	var lastModifiedOffset uint32
-	var spans []string
-	for _, e := range sortedEdits {
-		startOffset := document.offsetAt(e.Range.Start)
-		if startOffset < lastModifiedOffset {
-			//TODO: Replace panic.
-			panic("Overlapping edit")
-		} else if startOffset > lastModifiedOffset {
-			spans = append(spans, text[lastModifiedOffset:startOffset])
-		}
-		if len(e.NewText) > 0 {
-			spans = append(spans, e.NewText)
-		}
-		lastModifiedOffset = document.offsetAt(e.Range.End)
-	}
-	spans = append(spans, text[lastModifiedOffset:])
-	return strings.Join(spans, "")
-}
-
-func mergeSort[T any](data []T, compare func(a T, b T) int) []T {
-	if len(data) <= 1 {
-		// sorted
-		return data
-	}
-	p := (len(data) / 2)
-	left := data[0:p]
-	right := data[p:]
-
-	mergeSort(left, compare)
-	mergeSort(right, compare)
-
-	var leftIdx, rightIdx, i int
-	for leftIdx < len(left) && rightIdx < len(right) {
-		ret := compare(left[leftIdx], right[rightIdx])
-		if ret <= 0 {
-			// smaller_equal -> take left to preserve order
-			i++
-			leftIdx++
-			data[i] = left[leftIdx]
-		} else {
-			// greater -> take right
-			i++
-			leftIdx++
-			data[i] = right[rightIdx]
-		}
-	}
-	for leftIdx < len(left) {
-		i++
-		leftIdx++
-		data[i] = left[leftIdx]
-	}
-	for rightIdx < len(right) {
-		i++
-		rightIdx++
-		data[i] = right[rightIdx]
-	}
-	return data
 }
 
 func computeLineOffsets(text string, isAtLineStart bool, textOffset uint32) (result []uint32) {
@@ -302,18 +170,9 @@ func computeLineOffsets(text string, isAtLineStart bool, textOffset uint32) (res
 }
 
 func getWellformedRange(r lsp.Range) lsp.Range {
-	start := r.Start
-	end := r.End
+	start, end := r.Start, r.End
 	if start.Line > end.Line || (start.Line == end.Line && start.Character > end.Character) {
 		return lsp.Range{Start: end, End: start}
 	}
 	return r
-}
-
-func getWellformedEdit(textEdit lsp.TextEdit) lsp.TextEdit {
-	r := getWellformedRange(textEdit.Range)
-	if r != textEdit.Range {
-		return lsp.TextEdit{NewText: textEdit.NewText, Range: r}
-	}
-	return textEdit
 }

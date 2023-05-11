@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"html"
 	"io"
@@ -159,21 +161,7 @@ type Whitespace struct {
 func (ws Whitespace) IsNode() bool { return true }
 
 func (ws Whitespace) Write(w io.Writer, indent int) error {
-	if ws.Value == "" || !strings.Contains(ws.Value, "\n") {
-		return nil
-	}
-	// https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Whitespace
-	// - All spaces and tabs immediately before and after a line break are ignored.
-	// - All tab characters are handled as space characters.
-	// - Line breaks are converted to spaces.
-	// Any space immediately following another space (even across two separate inline elements) is ignored.
-	// Sequences of spaces at the beginning and end of an element are removed.
-
-	// Notes: Since we only have whitespace in this node, we can strip anything that isn't a line break.
-	// Since any space following another space is ignored, we can collapse to a single rule.
-	// So, the rule is... if there's a newline, it becomes a single space, or it's stripped.
-	// We have to remove the start and end space elsewhere.
-	_, err := io.WriteString(w, " ")
+	_, err := io.WriteString(w, ws.Value)
 	return err
 }
 
@@ -335,6 +323,7 @@ func (e Element) hasNonWhitespaceChildren() bool {
 }
 
 func (e Element) containsBlockElement() bool {
+	var textLength int
 	for _, c := range e.Children {
 		switch n := c.(type) {
 		case Whitespace:
@@ -347,6 +336,10 @@ func (e Element) containsBlockElement() bool {
 		case StringExpression:
 			continue
 		case Text:
+			textLength += len(n.Value)
+			if textLength > 80 {
+				return true
+			}
 			continue
 		case TemplElementExpression:
 			if len(n.Children) > 0 {
@@ -436,7 +429,7 @@ func (e Element) Write(w io.Writer, indent int) error {
 		if err := writeIndent(w, closeAngleBracketIndent, ">"); err != nil {
 			return err
 		}
-		if err := writeNodesInline(w, e.Children); err != nil {
+		if err := writeNodesInline(w, indent+1, e.Children); err != nil {
 			return err
 		}
 		if _, err := w.Write([]byte("</" + e.Name + ">")); err != nil {
@@ -456,32 +449,111 @@ func (e Element) Write(w io.Writer, indent int) error {
 	return nil
 }
 
-func writeNodesInline(w io.Writer, nodes []Node) error {
-	return writeNodes(w, 0, nodes, false)
+// https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Whitespace
+// - All spaces and tabs immediately before and after a line break are ignored.
+// - All tab characters are handled as space characters.
+// - Line breaks are converted to spaces.
+// Any space immediately following another space (even across two separate inline elements) is ignored.
+// Sequences of spaces at the beginning and end of an element are removed.
+func writeNodesInline(w io.Writer, indent int, nodes []Node) error {
+	normalized, wasWrapped := normalize(nodes, indent)
+	for i := 0; i < len(normalized); i++ {
+		if err := normalized[i].Write(w, 0); err != nil {
+			return err
+		}
+	}
+	if wasWrapped {
+		if _, err := w.Write([]byte("\n")); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func normalize(nodes []Node, indent int) (normalized []Node, wasWrapped bool) {
+	fmt.Printf("Normalizing: %#v\n", nodes)
+	// Strip start and end whitespace.
+	// Convert any newline whitespace to be a single space.
+	// Merge contiguous whitespace and text.
+	var text bytes.Buffer
+	for i, node := range nodes {
+		switch n := node.(type) {
+		case Whitespace:
+			// Terminating and leading whitespace is stripped.
+			if i == 0 || i == len(nodes)-1 {
+				continue
+			}
+			if len(n.Value) == 0 || !strings.Contains(n.Value, "\n") {
+				continue
+			}
+			// Collapse to single space.
+			text.WriteString(" ")
+			continue
+		case Text:
+			text.WriteString(strings.TrimSpace(n.Value))
+			continue
+		default:
+			if text.Len() > 0 {
+				wrappedNodes := wrapText(text.String(), indent)
+				wasWrapped = wasWrapped && len(wrappedNodes) > 1
+				normalized = append(normalized, wrappedNodes...)
+				text.Reset()
+			}
+			normalized = append(normalized, node)
+		}
+	}
+	if text.Len() > 0 {
+		wrappedNodes := wrapText(text.String(), indent)
+		wasWrapped = wasWrapped && len(wrappedNodes) > 1
+		normalized = append(normalized, wrappedNodes...)
+	}
+	fmt.Printf("Normalized: %#v\n", normalized)
+	return
+}
+
+func wrapText(t string, indent int) (op []Node) {
+	wrap := 80 - indent
+	if len(t) < wrap {
+		return []Node{Text{Value: t}}
+	}
+
+	s := bufio.NewScanner(strings.NewReader(t))
+	s.Split(bufio.ScanWords)
+
+	indentNode := Whitespace{
+		Value: "\n" + strings.Repeat("\t", indent),
+	}
+	op = append(op, indentNode)
+	var buf strings.Builder
+	for s.Scan() {
+		word := s.Text()
+		if buf.Len() > 0 && buf.Len()+len(word) > wrap {
+			op = append(op, Text{Value: strings.TrimSpace(buf.String())})
+			op = append(op, indentNode)
+			buf.Reset()
+		}
+		buf.WriteString(word)
+		buf.WriteString(" ")
+	}
+	if buf.Len() > 0 {
+		op = append(op, Text{Value: strings.TrimSpace(buf.String())})
+	}
+
+	return op
 }
 
 func writeNodesBlock(w io.Writer, indent int, nodes []Node) error {
-	return writeNodes(w, indent, nodes, true)
-}
-
-func writeNodes(w io.Writer, indent int, nodes []Node, block bool) error {
-	for i := 0; i < len(nodes); i++ {
-		// Terminating and leading whitespace is stripped.
-		_, isWhitespace := nodes[i].(Whitespace)
-		if isWhitespace && (i == 0 || i == len(nodes)-1) {
-			continue
-		}
-		// Whitespace is stripped from block elements.
-		if isWhitespace && block {
-			continue
-		}
-		if err := nodes[i].Write(w, indent); err != nil {
+	normalized, wasWrapped := normalize(nodes, indent)
+	for i := 0; i < len(normalized); i++ {
+		if err := normalized[i].Write(w, indent); err != nil {
 			return err
 		}
-		if block {
-			if _, err := w.Write([]byte("\n")); err != nil {
-				return err
-			}
+		if wasWrapped {
+			continue
+		}
+		if _, err := w.Write([]byte("\n")); err != nil {
+			return err
 		}
 	}
 	return nil

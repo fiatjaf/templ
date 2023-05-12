@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bufio"
 	"fmt"
 	"html"
 	"io"
@@ -297,7 +298,42 @@ type Text struct {
 
 func (t Text) IsNode() bool { return true }
 func (t Text) Write(w io.Writer, indent int) error {
-	return writeIndent(w, indent, t.Value)
+	wrap := 80 - indent
+	if len(t.Value) < wrap {
+		return writeIndent(w, 0, t.Value)
+	}
+
+	s := bufio.NewScanner(strings.NewReader(t.Value))
+	s.Split(bufio.ScanWords)
+
+	var buf strings.Builder
+	var lineWordCount int
+	var lineIndent int
+	for s.Scan() {
+		word := s.Text()
+		if buf.Len() > 0 && buf.Len()+len(word) > wrap {
+			if err := writeIndent(w, lineIndent, buf.String()); err != nil {
+				return err
+			}
+			lineIndent = indent
+			if _, err := io.WriteString(w, "\n"); err != nil {
+				return err
+			}
+			buf.Reset()
+			lineWordCount = 0
+		}
+		if lineWordCount > 0 {
+			buf.WriteString(" ")
+		}
+		buf.WriteString(word)
+		lineWordCount++
+	}
+	if buf.Len() > 0 {
+		if err := writeIndent(w, lineIndent, buf.String()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // <a .../> or <div ...>...</div>
@@ -436,7 +472,7 @@ func (e Element) Write(w io.Writer, indent int) error {
 		if err := writeIndent(w, closeAngleBracketIndent, ">"); err != nil {
 			return err
 		}
-		if err := writeNodesInline(w, e.Children); err != nil {
+		if err := writeNodesInline(w, indent, e.Children); err != nil {
 			return err
 		}
 		if _, err := w.Write([]byte("</" + e.Name + ">")); err != nil {
@@ -456,8 +492,8 @@ func (e Element) Write(w io.Writer, indent int) error {
 	return nil
 }
 
-func writeNodesInline(w io.Writer, nodes []Node) error {
-	return writeNodes(w, 0, nodes, false)
+func writeNodesInline(w io.Writer, indent int, nodes []Node) error {
+	return writeNodes(w, indent, nodes, false)
 }
 
 func writeNodesBlock(w io.Writer, indent int, nodes []Node) error {
@@ -471,11 +507,16 @@ func writeNodes(w io.Writer, indent int, nodes []Node, block bool) error {
 		if isWhitespace && (i == 0 || i == len(nodes)-1) {
 			continue
 		}
-		// Whitespace is stripped from block elements.
+		// Whitespace is stripped between block elements.
 		if isWhitespace && block {
 			continue
 		}
-		if err := nodes[i].Write(w, indent); err != nil {
+		nodeIndent := indent
+		_, isText := nodes[i].(Text)
+		if !block && !isText {
+			nodeIndent = 0
+		}
+		if err := nodes[i].Write(w, nodeIndent); err != nil {
 			return err
 		}
 		if block {

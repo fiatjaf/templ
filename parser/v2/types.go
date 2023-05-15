@@ -160,9 +160,6 @@ type Whitespace struct {
 func (ws Whitespace) IsNode() bool { return true }
 
 func (ws Whitespace) Write(w io.Writer, indent int) error {
-	if ws.Value == "" || !strings.Contains(ws.Value, "\n") {
-		return nil
-	}
 	// https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Whitespace
 	// - All spaces and tabs immediately before and after a line break are ignored.
 	// - All tab characters are handled as space characters.
@@ -298,24 +295,23 @@ type Text struct {
 
 func (t Text) IsNode() bool { return true }
 func (t Text) Write(w io.Writer, indent int) error {
-	wrap := 80 - indent
-	if len(t.Value) < wrap {
+	// Only use the scanner if required.
+	if indent == 0 {
 		return writeIndent(w, 0, t.Value)
 	}
 
+	wrap := 80 - indent
 	s := bufio.NewScanner(strings.NewReader(t.Value))
 	s.Split(bufio.ScanWords)
 
 	var buf strings.Builder
 	var lineWordCount int
-	var lineIndent int
 	for s.Scan() {
 		word := s.Text()
 		if buf.Len() > 0 && buf.Len()+len(word) > wrap {
-			if err := writeIndent(w, lineIndent, buf.String()); err != nil {
+			if err := writeIndent(w, indent, buf.String()); err != nil {
 				return err
 			}
-			lineIndent = indent
 			if _, err := io.WriteString(w, "\n"); err != nil {
 				return err
 			}
@@ -329,7 +325,7 @@ func (t Text) Write(w io.Writer, indent int) error {
 		lineWordCount++
 	}
 	if buf.Len() > 0 {
-		if err := writeIndent(w, lineIndent, buf.String()); err != nil {
+		if err := writeIndent(w, indent, buf.String()); err != nil {
 			return err
 		}
 	}
@@ -371,6 +367,8 @@ func (e Element) hasNonWhitespaceChildren() bool {
 }
 
 func (e Element) containsBlockElement() bool {
+	onlyContainsTextOrWhitespace := true
+	var textLength int
 	for _, c := range e.Children {
 		switch n := c.(type) {
 		case Whitespace:
@@ -379,18 +377,25 @@ func (e Element) containsBlockElement() bool {
 			if n.isBlockElement() {
 				return true
 			}
+			onlyContainsTextOrWhitespace = false
 			continue
 		case StringExpression:
+			onlyContainsTextOrWhitespace = false
 			continue
 		case Text:
+			textLength += len(n.Value)
 			continue
 		case TemplElementExpression:
 			if len(n.Children) > 0 {
 				return true
 			}
+			onlyContainsTextOrWhitespace = false
 			continue
 		}
 		// Any template elements should be considered block.
+		return true
+	}
+	if onlyContainsTextOrWhitespace && textLength > 80 {
 		return true
 	}
 	return false
@@ -472,7 +477,7 @@ func (e Element) Write(w io.Writer, indent int) error {
 		if err := writeIndent(w, closeAngleBracketIndent, ">"); err != nil {
 			return err
 		}
-		if err := writeNodesInline(w, indent, e.Children); err != nil {
+		if err := writeNodesInline(w, e.Children); err != nil {
 			return err
 		}
 		if _, err := w.Write([]byte("</" + e.Name + ">")); err != nil {
@@ -492,8 +497,8 @@ func (e Element) Write(w io.Writer, indent int) error {
 	return nil
 }
 
-func writeNodesInline(w io.Writer, indent int, nodes []Node) error {
-	return writeNodes(w, indent, nodes, false)
+func writeNodesInline(w io.Writer, nodes []Node) error {
+	return writeNodes(w, 0, nodes, false)
 }
 
 func writeNodesBlock(w io.Writer, indent int, nodes []Node) error {
@@ -511,12 +516,7 @@ func writeNodes(w io.Writer, indent int, nodes []Node, block bool) error {
 		if isWhitespace && block {
 			continue
 		}
-		nodeIndent := indent
-		_, isText := nodes[i].(Text)
-		if !block && !isText {
-			nodeIndent = 0
-		}
-		if err := nodes[i].Write(w, nodeIndent); err != nil {
+		if err := nodes[i].Write(w, indent); err != nil {
 			return err
 		}
 		if block {

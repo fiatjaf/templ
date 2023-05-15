@@ -456,12 +456,33 @@ templ x() {
 package main
 
 templ x() {
-	<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-	incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-	nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-	Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-	fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-	culpa qui officia deserunt mollit anim id est laborum.</p>
+	<p>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+		incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+		nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+		Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
+		fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+		culpa qui officia deserunt mollit anim id est laborum.
+	</p>
+}
+
+`,
+		},
+		{
+			name: "long text strings are not split if they contain inline elements or other complications",
+			input: ` // first line removed to make indentation clear
+package main
+
+templ x(name string) {
+	<p>
+		Hello { name }, hope you're having a <b>nice</b> day. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+	</p>
+}`,
+			expected: ` // first line removed to make indentation clear
+package main
+
+templ x(name string) {
+	<p>Hello { name }, hope you're having a <b>nice</b> day. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
 }
 
 `,
@@ -486,7 +507,6 @@ templ x() {
 			}
 			if diff := cmp.Diff(expected, w.String()); diff != "" {
 				t.Error(diff)
-				t.Error(w.String())
 			}
 		})
 	}

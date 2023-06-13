@@ -82,7 +82,7 @@ templ input(value, validation string) {
 `,
 		},
 		{
-			name: "empty elements stay on the same line",
+			name: "empty elements are not adjusted (whitespace is never removed, only added)",
 			input: ` // first line removed to make indentation clear in Go code
 package test
 
@@ -99,14 +99,15 @@ package test
 
 templ input(value, validation string) {
 	<div>
-		<p></p>
+		<p>
+		</p>
 	</div>
 }
 
 `,
 		},
 		{
-			name: "if the element only contains inline elements, they end up on the same line",
+			name: "block elements are placed on new lines",
 			input: ` // first line removed to make indentation clear in Go code
 package test
 
@@ -126,7 +127,7 @@ templ input(value, validation string) {
 `,
 		},
 		{
-			name: "if an element contains any block elements, all of the child elements are split onto new lines",
+			name: "nested block elements are placed on new lines",
 			input: ` // first line removed to make indentation clear in Go code
 package test
 
@@ -300,12 +301,20 @@ package test
 templ table(accountNumber string, registration string) {
 	<table>
 		<tr>
-			<th width="20%">Your account number</th>
-			<td width="80%">{ accountNumber }</td>
+			<th width="20%">
+				Your account number
+			</th>
+			<td width="80%">
+				{ accountNumber }
+			</td>
 		</tr>
 		<tr>
-			<td>Registration</td>
-			<td>{ strings.ToUpper(registration) }</td>
+			<td>
+				Registration
+			</td>
+			<td>
+				{ strings.ToUpper(registration) }
+			</td>
 		</tr>
 	</table>
 }
@@ -321,7 +330,9 @@ templ conditionalAttributes(addClass bool) {
 	<div id="conditional" if addClass {
 		class="itWasTrue"
 	}
-	width="300">Content</div>
+	width="300">
+		Content
+	</div>
 }
 `,
 			expected: ` // first line removed to make indentation clear
@@ -332,7 +343,9 @@ templ conditionalAttributes(addClass bool) {
 		if addClass {
 			class="itWasTrue"
 		}
-		width="300">Content</div>
+		width="300">
+		Content
+	</div>
 }
 
 `,
@@ -358,7 +371,9 @@ templ conditionalAttributes(addClass bool) {
 		if addClass {
 			class="itWasTrue"
 		}
-		width="300">Content</div>
+		width="300">
+		Content
+	</div>
 }
 
 `,
@@ -384,7 +399,9 @@ templ conditionalAttributes(addClass bool) {
 		if addClass {
 			class="itWasTrue"
 		}
-		>Content</div>
+		>
+		Content
+	</div>
 }
 
 `,
@@ -414,13 +431,15 @@ templ conditionalAttributes(addClass bool) {
 		} else {
 			class="itWasNotTrue"
 		}
-		width="300">Content</div>
+		width="300">
+			Content
+		</div>
 }
 
 `,
 		},
 		{
-			name: "templ expression elements without children are considered to be inline elements",
+			name: "templ expression elements without children are considered to be inline elements, but whitespace is never removed",
 			input: ` // first line removed to make indentation clear
 package main
 
@@ -437,7 +456,44 @@ templ x() {
 package main
 
 templ x() {
-	<li><a href="/">Home @hello("home")</a></li>
+	<li>
+		<a href="/">
+	    Home
+	    @hello("home")
+     </a>
+	</li>
+}
+
+`,
+		},
+
+		{
+			name: "whitespace is not stripped from elements",
+			input: ` // first line removed to make indentation clear
+package main
+
+templ x() {
+	<pre>
+		package main
+
+		func main() &#123;
+			println("Hello, world!")
+		&#125;
+	</pre>
+}
+
+`,
+			expected: ` // first line removed to make indentation clear
+package main
+
+templ x() {
+	<pre>
+		package main
+
+		func main() &#123;
+			println("Hello, world!")
+		&#125;
+	</pre>
 }
 
 `,
@@ -461,7 +517,9 @@ templ x() {
 				t.Fatalf("failed to write template: %v", err)
 			}
 			if diff := cmp.Diff(expected, w.String()); diff != "" {
-				t.Error(diff)
+				t.Errorf("Input:\n\n%s", input)
+				t.Errorf("Expected:\n\n%s", showHiddenChars(expected))
+				t.Errorf("Actual:\n\n%s", showHiddenChars(w.String()))
 			}
 		})
 	}

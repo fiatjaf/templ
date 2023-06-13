@@ -723,6 +723,26 @@ func TestElementParser(t *testing.T) {
 			},
 		},
 		{
+			name: "element: preformatted",
+			input: `<pre>
+			package main
+</pre>`,
+			expected: Element{
+				Name: "pre",
+				Children: []Node{
+					Whitespace{
+						Value: "\n\t\t\t",
+					},
+					Text{
+						Value: "package main",
+					},
+					Whitespace{
+						Value: "\n",
+					},
+				},
+			},
+		},
+		{
 			name:  "element: empty",
 			input: `<div></div>`,
 			expected: Element{

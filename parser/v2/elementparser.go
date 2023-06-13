@@ -280,12 +280,12 @@ func (attributesParser) Parse(in *parse.Input) (attributes []Attribute, ok bool,
 }
 
 // Element name.
-var elementNameFirst = "abcdefghijklmnopqrstuvwxyz"
+var elementNameFirst = parse.RuneIn("abcdefghijklmnopqrstuvwxyz")
 var elementNameSubsequent = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
 var elementNameParser = parse.Func(func(in *parse.Input) (name string, ok bool, err error) {
 	start := in.Index()
 	var prefix, suffix string
-	if prefix, ok, err = parse.RuneIn(elementNameFirst).Parse(in); err != nil || !ok {
+	if prefix, ok, err = elementNameFirst.Parse(in); err != nil || !ok {
 		return
 	}
 	if suffix, ok, err = parse.StringUntil(parse.RuneNotIn(elementNameSubsequent)).Parse(in); err != nil || !ok {

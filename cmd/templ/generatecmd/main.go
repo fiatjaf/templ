@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	_ "net/http/pprof"
@@ -29,6 +30,7 @@ import (
 	"github.com/a-h/templ/parser/v2"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/cli/browser"
+	"github.com/rjeczalik/notify"
 )
 
 type Arguments struct {
@@ -110,19 +112,73 @@ func runCmd(ctx context.Context, args Arguments) (err error) {
 		p = proxy.New(args.ProxyPort, target)
 	}
 
-	fmt.Println("Processing path:", args.Path)
-	var firstRunComplete bool
-	fileNameToLastModTime := make(map[string]time.Time)
-	for !firstRunComplete || args.Watch {
-		changesFound, errs := processChanges(ctx, fileNameToLastModTime, args.Path, args.GenerateSourceMapVisualisations, args.WorkerCount)
-		if len(errs) > 0 {
-			if errors.Is(errs[0], context.Canceled) {
-				return errs[0]
+	reloadEvents := make(chan int64, 64)
+
+	// Start workers.
+	processEvents := make(chan string)
+	var startedProcessing, finishedProcessing int64
+	for i := 0; i < args.WorkerCount; i++ {
+		go func() {
+			for path := range processEvents {
+				if err := processSingleFile(ctx, path, args.GenerateSourceMapVisualisations); err != nil {
+					fmt.Printf("Error processing file: %v\n", err)
+				}
+				reloadEvents <- atomic.AddInt64(&finishedProcessing, 1)
 			}
-			fmt.Printf("Error processing path: %v\n", errors.Join(errs...))
+		}()
+	}
+
+	// Start watching.
+	notificationEvents := make(chan notify.EventInfo, 128)
+	if args.Watch {
+		fmt.Println("Watching path:", args.Path)
+		if err := notify.Watch(filepath.Join(args.Path, "..."), notificationEvents, notify.Remove, notify.Write); err != nil {
+			fmt.Println("Failed to watch path:", args.Path, err)
 		}
-		if changesFound > 0 {
-			fmt.Printf("Generated code for %d templates with %d errors in %s\n", changesFound, len(errs), time.Since(start))
+		notify.Stop(notificationEvents)
+	} else {
+		fmt.Println("Processing path:", args.Path)
+		go func() {
+			if err := processChanges(ctx, args.Path, &startedProcessing, processEvents); err != nil {
+				fmt.Println("Failed to process changes:", err)
+			}
+		}()
+	}
+
+	var lastReload int64
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("Done")
+			close(processEvents)
+			break loop
+		case event := <-notificationEvents:
+			fmt.Println("Notification")
+			path := event.Path()
+			if !strings.HasSuffix(path, ".templ") {
+				continue
+			}
+			if event.Event() == notify.Remove {
+				goFileName := strings.TrimSuffix(path, ".templ") + "_templ.go"
+				if err := os.Remove(goFileName); err != nil {
+					fmt.Printf("Error removing file: %v\n", err)
+				}
+				continue
+			}
+			atomic.AddInt64(&startedProcessing, 1)
+			processEvents <- path
+		case finished := <-reloadEvents:
+			fmt.Println("Reload")
+			started := atomic.LoadInt64(&startedProcessing)
+			if finished != started {
+				continue
+			}
+			changesFound := finished - lastReload
+			isFirstReload := lastReload == 0
+			lastReload = finished
+
+			fmt.Printf("Generated code for %d templates in %s\n", changesFound, time.Since(start))
 			if args.Command != "" {
 				fmt.Printf("Executing command: %s\n", args.Command)
 				if _, err := run.Run(ctx, args.Path, args.Command); err != nil {
@@ -133,7 +189,7 @@ func runCmd(ctx context.Context, args Arguments) (err error) {
 					p.SendSSE("message", "reload")
 				}
 			}
-			if !firstRunComplete && p != nil {
+			if isFirstReload && p != nil {
 				go func() {
 					fmt.Printf("Proxying from %s to target: %s\n", p.URL, p.Target.String())
 					if err := http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", args.ProxyPort), p); err != nil {
@@ -147,14 +203,11 @@ func runCmd(ctx context.Context, args Arguments) (err error) {
 					}
 				}()
 			}
+			start = time.Now()
 		}
-		if firstRunComplete {
-			time.Sleep(250 * time.Millisecond)
-		}
-		firstRunComplete = true
-		start = time.Now()
 	}
-	return err
+
+	return nil
 }
 
 func shouldSkipDir(dir string) bool {
@@ -172,11 +225,8 @@ func shouldSkipDir(dir string) bool {
 	return false
 }
 
-func processChanges(ctx context.Context, fileNameToLastModTime map[string]time.Time, path string, generateSourceMapVisualisations bool, maxWorkerCount int) (changesFound int, errs []error) {
-	sem := make(chan struct{}, maxWorkerCount)
-	var wg sync.WaitGroup
-
-	err := filepath.WalkDir(path, func(path string, info os.DirEntry, err error) error {
+func processChanges(ctx context.Context, path string, startedProcessing *int64, target chan string) (err error) {
+	return filepath.WalkDir(path, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -190,36 +240,11 @@ func processChanges(ctx context.Context, fileNameToLastModTime map[string]time.T
 			return nil
 		}
 		if strings.HasSuffix(path, ".templ") {
-			lastModTime := fileNameToLastModTime[path]
-			fileInfo, err := info.Info()
-			if err != nil {
-				return fmt.Errorf("failed to get file info: %w", err)
-			}
-			if fileInfo.ModTime().After(lastModTime) {
-				fileNameToLastModTime[path] = fileInfo.ModTime()
-				changesFound++
-
-				// Start a processor, but limit to maxWorkerCount.
-				sem <- struct{}{}
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					if err := processSingleFile(ctx, path, generateSourceMapVisualisations); err != nil {
-						errs = append(errs, err)
-					}
-					<-sem
-				}()
-			}
+			atomic.AddInt64(startedProcessing, 1)
+			target <- path
 		}
 		return nil
 	})
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	wg.Wait()
-
-	return changesFound, errs
 }
 
 func openURL(url string) error {

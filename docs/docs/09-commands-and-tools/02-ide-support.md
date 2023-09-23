@@ -16,20 +16,21 @@ For neovim you can also use [nvim-treesitter](https://github.com/nvim-treesitter
 To enable the built-in Language Server support of Neovim 5.x add the following code to your `.vimrc` prior to calling `setup` on the language servers, e.g.:
 
 ```lua
--- Add templ configuration.
-local configs = require'lspconfig/configs'
-if not nvim_lsp.templ then
-  configs.templ = {
-    default_config = {
-      cmd = {"templ", "lsp"},
-      filetypes = {'templ'},
-      root_dir = nvim_lsp.util.root_pattern("go.mod", ".git"),
-      settings = {},
-    };
-  }
-end
+-- set filetype to "templ" based on extension
+vim.cmd([[autocmd BufRead,BufNewFile *.templ setfiletype templ]])
 
--- Use a loop to conveniently call 'setup' on multiple servers and
+-- add a custom lsp config for templ
+require('lspconfig.configs').templ = {
+  default_config = {
+    cmd = {"templ", "lsp"},
+    filetypes = {'templ'},
+    root_dir = lspconfig.util.root_pattern("go.mod"),
+    settings = {},
+  };
+}
+
+-- default lspconfig setup:
+-- use a loop to conveniently call 'setup' on multiple servers and
 -- map buffer local keybindings when the language server attaches
 local servers = { 'gopls', 'ccls', 'cmake', 'tsserver', 'templ' }
 for _, lsp in ipairs(servers) do
